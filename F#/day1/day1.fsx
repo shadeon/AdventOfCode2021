@@ -17,11 +17,12 @@ let input =
 
 let depthIncreased (first, second) = second > first
 
-let part1 = 
-    input
-    |> Seq.pairwise
-    |> Seq.filter depthIncreased
-    |> Seq.length
+let countIncreases =
+    Seq.pairwise
+    >> Seq.filter depthIncreased
+    >> Seq.length
+
+let part1 = countIncreases input
 
 printfn "Part 1: Measurements increased %i times" part1
 
@@ -32,8 +33,6 @@ let getWindows = Seq.windowed 3 >> Seq.map ( Seq.fold (+) 0 )
 let part2 = 
     input
     |> getWindows
-    |> Seq.pairwise
-    |> Seq.filter depthIncreased
-    |> Seq.length
+    |> countIncreases
 
 printfn "Part 2: Measurements increased %i times" part2
