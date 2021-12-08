@@ -52,50 +52,42 @@ printfn "Number of unique digits on displays: %i" part1
 
 // part 2
 
-let isLength length =
-    String.length
-    >> (=) length
+let isLength length = String.length >> (=) length
 
-let remainingCount pattern mask =
+let remainingDifference remaining pattern mask =
     Seq.except mask pattern
     |> Seq.length
-
-let byDistinct length remaining pattern mask  =
-    match ((isLength length) mask, remainingCount pattern mask ) with
-    | ( true, r ) when r = remaining -> true
-    | _ -> false
-
-let isThree = byDistinct 5 0
-
-let isTwo = byDistinct 5 2
-
-let isSix = byDistinct 6 1
-
-let getDigit connections =
-    let letters = 
-        Seq.sort connections
-        |> List.ofSeq
-    match letters with
-    | [ "a"; "b"; "c";      "e"; "f"; "g" ] -> Some "0"
-    | [           "c";           "f";     ] -> Some "1"
-    | [ "a";      "c"; "d"; "e";      "g" ] -> Some "2"
-    | [ "a";      "c"; "d";      "f"; "g" ] -> Some "3"
-    | [      "b"; "c"; "d";      "f";     ] -> Some "4"
-    | [ "a"; "b";      "d";      "f"; "g" ] -> Some "5"
-    | [ "a"; "b";      "d"; "e"; "f"; "g" ] -> Some "6"
-    | [ "a";      "c";           "f";     ] -> Some "7"
-    | [ "a"; "b"; "c"; "d"; "e"; "f"; "g" ] -> Some "8"
-    | [ "a"; "b"; "c"; "d";      "f"; "g" ] -> Some "9"
-    | _ -> None
+    |> (=) remaining
+    
 
 let getDisplay digits =
     match Seq.exists Option.isNone digits with
     | true -> None
-    | false -> String.Join("", (Seq.map Option.get digits)) |> int |> Some
+    | false -> 
+        String.Join("", (Seq.map Option.get digits))
+        |> int 
+        |> Some
 
-let getChar pattern mask =
-    Seq.except mask pattern
-    |> Seq.head
+let (|Digit|_|) one four digit =
+    let length = String.length digit
+
+    let isThree = remainingDifference 0 one
+    let isTwo = remainingDifference 2 four
+    let isSix = remainingDifference 1 one
+    let isNine pattern = remainingDifference 2 pattern four
+
+    match length with
+    | 2 -> Some "1"
+    | 3 -> Some "7"
+    | 4 -> Some "4"
+    | 7 -> Some "8"
+    | 5 when isTwo digit -> Some "2"
+    | 5 when isThree digit -> Some "3"
+    | 5 -> Some "5"
+    | 6 when isSix digit -> Some "6"
+    | 6 when isNine digit -> Some "9"
+    | 6 -> Some "0"
+    | _ -> None
 
 let decode entry =
     let patterns = getSignals entry.Patterns
@@ -104,33 +96,15 @@ let decode entry =
     // first get unique values
     let one = Array.find (isLength 2) patterns
     let four = Array.find (isLength 4) patterns
-    let seven = Array.find (isLength 3) patterns
-
-    // Now get derived values that we need
-    let three = Array.find (isThree one) patterns
-    let six = Array.find (isSix one) patterns
-    let two = Array.find (isTwo four) patterns
-
-    // Can now build each char
-    let g = "g", getChar three (Seq.append seven four)
-    let connections = [
-        g 
-        ("a", getChar seven one)
-        "b", getChar four three
-        "c", getChar four six
-        "d", getChar three (Seq.append seven [snd g]) 
-        "e", getChar two three
-        "f", getChar three two
-    ]
 
     let decoder s = 
-        Seq.find (fun (_, v) -> v = s  ) connections
-        |> fst
+        match s with
+        | Digit one four d -> Some d
+        | _ -> None
 
     // can now replace each letter
     display
-    |> Seq.map (fun s -> Seq.map decoder s)
-    |> Seq.map getDigit
+    |> Seq.map decoder
     |> getDisplay
 
 let part2 = 
